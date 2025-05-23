@@ -5,8 +5,8 @@ use template_matching::{find_extremes, match_template, Image as TMImage, MatchTe
 use windows::{core::PCSTR, Win32::Foundation::*, Win32::UI::WindowsAndMessaging::*};
 use xcap::Monitor;
 
-pub const WINDOW_LENGTH: u32 = 1920; 
-pub const WINDOW_HEIGHT: u32 = 1080; 
+pub const WINDOW_LENGTH: u32 = 1920;
+pub const WINDOW_HEIGHT: u32 = 1080;
 
 pub fn screenshot_window() -> RgbaImage {
     let monitor = Monitor::all().unwrap()[0].clone();

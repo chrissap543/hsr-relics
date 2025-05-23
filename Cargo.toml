@@ -9,6 +9,7 @@ edition = "2021"
 fs_extra = "1.3.0"
 image = "0.25.6"
 ocrs = "0.10.3"
+rten = "0.18.0"
 template-matching = "0.2.0"
 windows = {version = "0.61.1", features = ["Win32_UI_WindowsAndMessaging"]}
 xcap = "0.6.0"

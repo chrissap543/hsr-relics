@@ -1180,6 +1180,7 @@ dependencies = [
  "fs_extra",
  "image 0.25.6",
  "ocrs",
+ "rten",
  "template-matching",
  "windows 0.61.1",
  "xcap",
