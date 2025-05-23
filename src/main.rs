@@ -1,6 +1,6 @@
 use std::{thread, time::Duration};
 
-use image::{RgbaImage, SubImage};
+use image::RgbaImage;
 use relic::*;
 use utils::find_template_coords;
 use xcap::image::{GenericImageView, ImageReader};
@@ -35,8 +35,26 @@ fn main() {
     println!("Found relic!");
     let relic = parse_text(&engine, &relic_img);
     println!("Relic: {:?}", relic);
+    let mut all_relics = vec![relic.clone()];
 
     // do all of them
+    let mut prev_relic = relic.clone(); 
+    loop {
+        println!("Move to next relic"); 
+        thread::sleep(Duration::from_secs(3));
+        let relic_img_loop = get_relic(window_coords);
+        let relic = parse_text(&engine, &relic_img_loop);
+
+        if relic == prev_relic {
+            println!("Found dupe!");
+            break;
+        } else {
+            prev_relic = relic.clone();
+            all_relics.push(relic.clone());
+        }
+    }
+
+    println!("{:?}", all_relics);
 }
 
 fn find_coords() -> (u32, u32) {
@@ -96,10 +114,10 @@ fn parse_text(engine: &OcrEngine, relic: &RgbaImage) -> Relic {
                 .to_image()
         })
         .collect();
-    bot_imgs.iter().enumerate().for_each(|(i, img)| {
-        let filename = format!("target/relics/stat_line_{}.png", i);
-        let _ = img.save(&filename);
-    });
+    // bot_imgs.iter().enumerate().for_each(|(i, img)| {
+    //     let filename = format!("target/relics/stat_line_{}.png", i);
+    //     let _ = img.save(&filename);
+    // });
 
     let top_parsed = get_text(engine, &top.to_image());
     let bot_parsed = bot_imgs
@@ -130,10 +148,10 @@ fn get_text(engine: &OcrEngine, img: &RgbaImage) -> Vec<ocrs::TextLine> {
 }
 
 fn parse_relic(top: Vec<TextLine>, bot: Vec<TextLine>) -> Relic {
-    print!("top: ");
-    top.iter().for_each(|t| println!("{}", t));
-    print!("bot: ");
-    bot.iter().for_each(|t| println!("{}", t));
+    // print!("top: ");
+    // top.iter().for_each(|t| println!("{}", t));
+    // print!("bot: ");
+    // bot.iter().for_each(|t| println!("{}", t));
 
     let name = top[0].to_string();
     let slot = top
@@ -201,7 +219,7 @@ pub fn parse_stat(s: &str) -> Option<Stat> {
         "spd" => Some(Stat::SPD(value as u32)),
         "break effect" => Some(Stat::BE(value)),
         "effect hit rate" => Some(Stat::EHR(value)),
-        "effect res rate" => Some(Stat::ERR(value)),
+        "effect res" => Some(Stat::ERR(value)),
         "outgoing healing" => Some(Stat::OHB(value)),
         "physical dmg" => Some(Stat::PHYS(value)),
         "fire dmg" => Some(Stat::FIRE(value)),

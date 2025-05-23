@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Slot {
     BODY,
     HEAD,
@@ -8,7 +8,7 @@ pub enum Slot {
     SPHERE,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Stat {
     HP(u32),
     ATK(u32),
@@ -32,12 +32,12 @@ pub enum Stat {
     CD(f32),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Set {
     POET,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Relic {
     pub name: String,
     pub set: Set,
@@ -57,3 +57,10 @@ impl Relic {
         }
     }
 }
+
+impl PartialEq for Relic {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.mainstat == other.mainstat && self.substats == other.substats       
+    }
+}
+impl Eq for Relic {}
