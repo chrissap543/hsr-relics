@@ -4,6 +4,7 @@ use std::ffi::CString;
 use template_matching::{find_extremes, match_template, Image as TMImage, MatchTemplateMethod};
 use windows::{core::PCSTR, Win32::Foundation::*, Win32::UI::WindowsAndMessaging::*};
 use xcap::Monitor;
+use ocrs::{ImageSource, OcrEngine};
 
 pub const WINDOW_LENGTH: u32 = 1920;
 pub const WINDOW_HEIGHT: u32 = 1080;
@@ -50,4 +51,24 @@ pub fn find_template_coords(full: &RgbaImage, template: &RgbaImage) -> (u32, u32
         extremes.min_value_location.0 as u32,
         extremes.min_value_location.1 as u32,
     )
+}
+
+pub fn get_text(engine: &OcrEngine, img: &RgbaImage) -> Vec<ocrs::TextLine> {
+    let img_source = ImageSource::from_bytes(img.as_raw(), img.dimensions()).unwrap();
+    let ocr_input = engine.prepare_input(img_source).unwrap();
+
+    let word_rects = engine.detect_words(&ocr_input).unwrap();
+    // Group words into lines. Each line is represented by a list of word
+    // bounding boxes.
+    let line_rects = engine.find_text_lines(&ocr_input, &word_rects);
+
+    // Recognize the characters in each line.
+    let line_texts = engine.recognize_text(&ocr_input, &line_rects).unwrap();
+
+    line_texts
+        .iter()
+        .flatten()
+        .filter(|l| l.to_string().len() > 1)
+        .map(|x| x.clone())
+        .collect()
 }

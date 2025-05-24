@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Slot {
     BODY,
     HEAD,
@@ -8,7 +10,7 @@ pub enum Slot {
     SPHERE,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Stat {
     HP(u32),
     ATK(u32),
@@ -32,18 +34,65 @@ pub enum Stat {
     CD(f32),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Set {
+    // relic set
+    BAND,
+    CHAMPION,
+    EAGLE,
+    FIRESMITH,
+    GENIUS,
+    GUARD,
+    HERO,
+    HUNTER,
+    IRON,
+    KNIGHT,
+    DISCIPLE,
+    MESSENGER,
+    MUSKETEER,
+    PASSERBY,
+    PIONEER,
     POET,
+    PRISONER,
+    ORDEAL,
+    SCHOLAR,
+    DUKE,
+    SOAR,
+    THIEF,
+    GODDESS,
+    WASTELANDER,
+    WATCHMAKER,
+    WAVESTRIDER,
+    // planar
+    BELOBOG,
+    BONE,
+    KEEL,
+    CELESTIAL,
+    DURAN,
+    GLAMOTH,
+    AGELESS,
+    FORGE,
+    TREE,
+    INERT,
+    REALM,
+    SUNKEN,
+    ENTERPRISE,
+    PENACONY,
+    ARENA,
+    DESOLATION,
+    STATION,
+    SPRIGHTLY,
+    BANDITRY,
+    PARK
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Relic {
     pub name: String,
     pub set: Set,
     pub slot: Slot,
     pub mainstat: Stat,
-    pub substats: Vec<Stat>
+    pub substats: Vec<Stat>,
 }
 
 impl Relic {
@@ -60,7 +109,9 @@ impl Relic {
 
 impl PartialEq for Relic {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name && self.mainstat == other.mainstat && self.substats == other.substats       
+        self.name == other.name
+            && self.mainstat == other.mainstat
+            && self.substats == other.substats
     }
 }
 impl Eq for Relic {}
