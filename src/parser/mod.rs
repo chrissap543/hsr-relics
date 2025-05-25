@@ -1,12 +1,20 @@
+mod types;
+
 // imports
 use crate::relic::*;
 use crate::utils::*;
+use types::RelicSetStub;
 
 use image::RgbaImage;
 use ocrs::{OcrEngine, OcrEngineParams, TextLine};
 use rten::Model;
-use std::{thread, time::Duration};
+use std::fs;
+use std::{collections::HashMap, thread, time::Duration};
+use types::RelicStub;
 use xcap::image::{GenericImageView, ImageReader};
+
+const RELIC_SETS_JSON: &str = "data/relic_sets.json";
+const RELICS_JSON: &str = "data/relics.json";
 
 pub fn get_relics() -> Vec<Relic> {
     if focus_window("Honkai: Star Rail") {
@@ -28,10 +36,12 @@ pub fn get_relics() -> Vec<Relic> {
     })
     .unwrap();
 
+    let name_map = parse_relic_json();
+
     let relic_img = get_relic_image(window_coords);
     println!("Found relic!");
     println!("Move to next relic: 1");
-    let relic = parse_text(&engine, &relic_img);
+    let relic = parse_text(&engine, &relic_img, &name_map);
     let mut all_relics = vec![relic.clone()];
 
     // do all of them
@@ -42,7 +52,7 @@ pub fn get_relics() -> Vec<Relic> {
         let relic_img_loop = get_relic_image(window_coords);
         println!("Move to next relic: {}", i);
         i += 1;
-        let relic = parse_text(&engine, &relic_img_loop);
+        let relic = parse_text(&engine, &relic_img_loop, &name_map);
 
         if relic == prev_relic {
             println!("Found dupe!");
@@ -82,7 +92,11 @@ fn get_relic_image(coords: (u32, u32)) -> RgbaImage {
     relic.to_image()
 }
 
-fn parse_text(engine: &OcrEngine, relic: &RgbaImage) -> Relic {
+fn parse_text(
+    engine: &OcrEngine,
+    relic: &RgbaImage,
+    name_map: &HashMap<Set, Vec<String>>,
+) -> Relic {
     let height = 275;
     let chop_left = 75;
     let bottom_margin = 50;
@@ -94,7 +108,8 @@ fn parse_text(engine: &OcrEngine, relic: &RgbaImage) -> Relic {
     let line_height = stat_area_height / 5; // Since we expect 4 lines
 
     let top = relic.view(0, 0, relic.width(), height);
-    top.to_image().save("target/relics/relic_info.png"); 
+    // top.to_image().save("target/relics/relic_info.png");
+
     // Crop the entire bottom portion (the stat area)
     let bot = relic
         .view(
@@ -104,7 +119,7 @@ fn parse_text(engine: &OcrEngine, relic: &RgbaImage) -> Relic {
             stat_area_height,
         )
         .to_image();
-    bot.save("target/relics/stats.png"); 
+    // bot.save("target/relics/stats.png");
 
     // Now slice into 5 horizontal lines
     let bot_imgs: Vec<RgbaImage> = (0..5)
@@ -113,32 +128,36 @@ fn parse_text(engine: &OcrEngine, relic: &RgbaImage) -> Relic {
                 .to_image()
         })
         .collect();
-    bot_imgs.iter().enumerate().for_each(|(i, img)| {
-        let filename = format!("target/relics/stat_line_{}.png", i);
-        let _ = img.save(&filename);
-    });
+    // bot_imgs.iter().enumerate().for_each(|(i, img)| {
+    //     let filename = format!("target/relics/stat_line_{}.png", i);
+    //     let _ = img.save(&filename);
+    // });
     let set_img = relic
         .view(0, full_height - bottom_margin, full_width, bottom_margin)
         .to_image();
-    let _ = set_img.save("target/relics/set.png"); 
-    let set = get_text(engine, &set_img)[0].clone(); 
+    // let _ = set_img.save("target/relics/set.png");
+    let set = get_text(engine, &set_img)[0].clone();
 
     let relic_info = get_text(engine, &top.to_image());
     let stats = bot_imgs
         .iter()
         .map(|img| get_text(engine, &img)[0].clone())
         .collect();
-    parse_relic(relic_info, stats, set)
+    parse_relic(relic_info, stats, set, name_map)
 }
 
-fn parse_relic(relic_info: Vec<TextLine>, stats: Vec<TextLine>, set_text: TextLine) -> Relic {
+fn parse_relic(
+    relic_info: Vec<TextLine>,
+    stats: Vec<TextLine>,
+    set_text: TextLine,
+    name_map: &HashMap<Set, Vec<String>>,
+) -> Relic {
     // print!("relic_info: ");
     // relic_info.iter().for_each(|t| println!("{}", t));
     // print!("bot: ");
     // bot.iter().for_each(|t| println!("{}", t));
 
-    let name = relic_info[0].to_string();
-    let slot = relic_info[1..]
+    let slot = relic_info
         .iter()
         .filter_map(|s| parse_slot(&s.to_string()))
         .next()
@@ -150,22 +169,30 @@ fn parse_relic(relic_info: Vec<TextLine>, stats: Vec<TextLine>, set_text: TextLi
         .expect("Failed to parse any valid mainstat");
     let substats: Vec<Stat> = stats_iter.collect();
     let set = parse_set(&set_text.to_string()).unwrap();
+    let name = &name_map[&set][usize::from(slot.clone())];
 
-    Relic::new(name, set, slot, mainstat, substats)
+    Relic::new(name.clone(), set, slot, mainstat, substats)
 }
 
 fn parse_slot(s: &str) -> Option<Slot> {
-    match s {
-        "Body" => Some(Slot::BODY),
-        "Head" => Some(Slot::HEAD),
-        "Hands" => Some(Slot::HANDS),
-        "Feet" => Some(Slot::FEET),
-        "Link Rope" => Some(Slot::ROPE),
-        "Planar Sphere" => Some(Slot::SPHERE),
+    match s.to_lowercase().as_str() {
+        // image parsing
+        "body" => Some(Slot::BODY),
+        "head" => Some(Slot::HEAD),
+        "hands" => Some(Slot::HANDS),
+        "feet" => Some(Slot::FEET),
+        "link rope" => Some(Slot::ROPE),
+        "planar sphere" => Some(Slot::SPHERE),
+
+        // json parsing
+        "neck" => Some(Slot::SPHERE),
+        "object" => Some(Slot::ROPE),
+        "hand" => Some(Slot::HANDS),
+        "foot" => Some(Slot::FEET),
         _ => {
             // println!("slot none: {}", s);
             None
-        },
+        }
     }
 }
 
@@ -226,8 +253,10 @@ fn parse_stat(s: &str) -> Option<Stat> {
 }
 
 fn parse_set(s: &str) -> Option<Set> {
-    let split = s.split(|c: char| !c.is_alphanumeric()).collect::<Vec<&str>>(); 
-    let first = split[0].to_lowercase(); 
+    let split = s
+        .split(|c: char| !c.is_alphanumeric())
+        .collect::<Vec<&str>>();
+    let first = split[0].to_lowercase();
     match first.as_str() {
         // relic set
         "band" => Some(Set::BAND),
@@ -254,14 +283,12 @@ fn parse_set(s: &str) -> Option<Set> {
         "wastelander" => Some(Set::WASTELANDER),
         "watchmaker" => Some(Set::WATCHMAKER),
         "wavestrider" => Some(Set::WAVESTRIDER),
-        "the" => {
-            match split[1].to_lowercase().as_str() {
-                "ashblazing" => Some(Set::DUKE),
-                "wind" => Some(Set::SOAR),
-                "wondrous" => Some(Set::PARK),
-                _ => None
-            }
-        }
+        "the" => match split[1].to_lowercase().as_str() {
+            "ashblazing" => Some(Set::DUKE),
+            "wind" => Some(Set::SOAR),
+            "wondrous" => Some(Set::PARK),
+            _ => None,
+        },
         // planar
         "belobog" => Some(Set::BELOBOG),
         "bone" => Some(Set::BONE),
@@ -286,10 +313,35 @@ fn parse_set(s: &str) -> Option<Set> {
         _ => {
             println!("set: {}", s);
             None
-        },
+        }
     }
 }
 
-pub fn parse_relic_json(sets: String, relics: String) {
-    
+pub fn parse_relic_json() -> HashMap<Set, Vec<String>> {
+    let relic_set_stubs: HashMap<String, RelicSetStub> = serde_json::from_str(
+        &fs::read_to_string(RELIC_SETS_JSON).expect("Failed to read relic sets JSON."),
+    )
+    .expect("Failed to parse JSON");
+    let relic_stubs: HashMap<String, RelicStub> = serde_json::from_str(
+        &fs::read_to_string(RELICS_JSON).expect("Failed to read relic sets JSON."),
+    )
+    .expect("Failed to parse JSON");
+
+    let mut set_to_names: HashMap<Set, Vec<String>> = HashMap::new();
+    for relic in relic_stubs.values() {
+        let set_name = relic_set_stubs
+            .get(&relic.set_id)
+            .map(|stub| &stub.name)
+            .expect("Set ID not found in set stubs");
+
+        let set = parse_set(set_name).expect("Failed to parse set from JSON");
+        let slot = parse_slot(&relic.slot).expect("Failed to parse slot from JSON");
+
+        let names = set_to_names
+            .entry(set)
+            .or_insert_with(|| vec![String::new(); 6]);
+        names[usize::from(slot)] = relic.name.clone();
+    }
+
+    set_to_names
 }

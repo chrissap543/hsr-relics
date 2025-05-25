@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Slot {
@@ -8,6 +8,19 @@ pub enum Slot {
     FEET,
     ROPE,
     SPHERE,
+}
+
+impl From<Slot> for usize {
+    fn from(slot: Slot) -> Self {
+        match slot {
+            Slot::BODY => 0,
+            Slot::HEAD => 1,
+            Slot::HANDS => 2,
+            Slot::FEET => 3,
+            Slot::ROPE => 4,
+            Slot::SPHERE => 5,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -34,7 +47,7 @@ pub enum Stat {
     CD(f32),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum Set {
     // relic set
     BAND,
@@ -83,7 +96,7 @@ pub enum Set {
     STATION,
     SPRIGHTLY,
     BANDITRY,
-    PARK
+    PARK,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,10 +1,10 @@
 use image::{DynamicImage, RgbaImage};
+use ocrs::{ImageSource, OcrEngine};
 use std::borrow::Cow;
 use std::ffi::CString;
 use template_matching::{find_extremes, match_template, Image as TMImage, MatchTemplateMethod};
 use windows::{core::PCSTR, Win32::Foundation::*, Win32::UI::WindowsAndMessaging::*};
 use xcap::Monitor;
-use ocrs::{ImageSource, OcrEngine};
 
 pub const WINDOW_LENGTH: u32 = 1920;
 pub const WINDOW_HEIGHT: u32 = 1080;
