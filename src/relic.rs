@@ -33,6 +33,7 @@ pub enum Stat {
     ATKP(f32),
     DEFP(f32),
     BE(f32),  // break effect
+    EFR(f32), // effect res
     EHR(f32), // effect hit rate
     ERR(f32), // energy regen
     OHB(f32), // healing
